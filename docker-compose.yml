@@ -1,0 +1,83 @@
+name: geoint
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: geoint_postgres
+    environment:
+      POSTGRES_USER: ${USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-geoint_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geoint_network
+
+  # MinIO Object Storage
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: geoint_minio
+  #   command: server /data --console-address ":9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${BUCKET_ACCESS_KEY:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${BUCKET_SECRET_KEY:-minioadmin}
+  #   volumes:
+  #     - minio_data:/data
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - geoint_network
+
+  
+  backend:
+    image: geoint_be:latest
+    container_name: geoint_backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      # minio:
+      #   condition: service_healthy
+    env_file:
+      - app.env
+    environment:
+      DB_HOST: db
+      DB_PORT: "${DB_PORT:-5432}"
+      # MINIO_ENDPOINT: minio:9000
+      SERVER_PORT: 7003
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ./static:/usr/src/app/static
+    ports:
+      - "8019:7003"
+    restart: unless-stopped
+    networks:
+      - geoint_network
+
+
+volumes:
+  postgres_data:
+    driver: local
+  # minio_data:
+    # driver: local
+
+networks:
+  geoint_network:
+    driver: bridge
