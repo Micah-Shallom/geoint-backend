@@ -8,6 +8,7 @@ import (
 	"github.com/Micah-Shallom/geoint-backend/internal/config"
 	"github.com/Micah-Shallom/geoint-backend/internal/models/migrations"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage"
+	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage/minio"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage/postgresql"
 	"github.com/Micah-Shallom/geoint-backend/pkg/router"
 	"github.com/Micah-Shallom/geoint-backend/utility"
@@ -16,10 +17,11 @@ import (
 
 func main() {
 
-	logger := utility.NewLogger() //Warning !!!!! Do not recreate this action anywhere on the apps
+	logger := utility.NewLogger() //Warning !!!!! Do not recreate anywhere 
 
 	configuration := config.Setup(logger, "./app")
 	postgresql.ConnectToDatabase(logger, configuration.Database)
+	minio.ConnectToMinio(logger, configuration.Minio)
 
 	db := storage.Connection()
 

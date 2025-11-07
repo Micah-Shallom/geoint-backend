@@ -6,20 +6,19 @@ import (
 )
 
 type Analysis struct {
-    ID                 string   `gorm:"primaryKey"`
-    OperationType      string
-    AreaOfOperation    string
-    MissionDescription string
-    Constraints        string
-    PastImagery        
-    PresentImagery      
-    SupportDocuments   []*multipart.FileHeader // paths
-    Status             string   
-    CreatedAt          time.Time
-    CompletedAt        *time.Time
-    ReportJSON         string   // final report
+	ID                 string `gorm:"primaryKey"`
+	OperationType      string
+	AreaOfOperation    string
+	MissionDescription string
+	Constraints        string
+	// PastImagery
+	// PresentImagery
+	SupportDocuments []*multipart.FileHeader // paths
+	Status           string
+	CreatedAt        time.Time
+	CompletedAt      *time.Time
+	ReportJSON       string // final report
 }
-
 
 type AnalysisRequest struct {
 	OperationType      string                  `form:"operation_type" json:"operation_type" binding:"required"`

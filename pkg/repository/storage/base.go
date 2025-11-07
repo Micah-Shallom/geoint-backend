@@ -4,10 +4,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/Micah-Shallom/geoint-backend/utility"
+	"github.com/minio/minio-go/v7"
 )
 
 type Database struct {
 	Postgresql *gorm.DB
+	Minio      *minio.Client
 }
 
 var (

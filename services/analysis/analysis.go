@@ -10,5 +10,5 @@ import (
 
 func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.AnalysisRequest, pastFiles []*multipart.FileHeader, presentFiles []*multipart.FileHeader, supportFiles []*multipart.FileHeader) (models.AnalysisResponse, error) {
 	
-	
+	return models.AnalysisResponse{}, nil
 }

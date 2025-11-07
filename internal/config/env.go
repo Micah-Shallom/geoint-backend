@@ -8,6 +8,7 @@ import (
 type Configuration struct {
 	Server       ServerConfiguration
 	Database     Database
+	Minio        Minio
 	TestDatabase Database
 	App          App
 	IPStack      IPStack
@@ -53,6 +54,11 @@ type BaseConfig struct {
 
 	IPSTACK_KEY      string `mapstructure:"IPSTACK_KEY"`
 	IPSTACK_BASE_URL string `mapstructure:"IPSTACK_BASE_URL"`
+
+	MINIO_ENDPOINT    string `mapstructure:"MINIO_ENDPOINT"`
+	BUCKET_NAME       string `mapstructure:"BUCKET_NAME"`
+	BUCKET_ACCESS_KEY string `mapstructure:"BUCKET_ACCESS_KEY"`
+	BUCKET_SECRET_KEY string `mapstructure:"BUCKET_SECRET_KEY"`
 }
 
 func (config *BaseConfig) SetupConfigurationn() *Configuration {
@@ -106,6 +112,12 @@ func (config *BaseConfig) SetupConfigurationn() *Configuration {
 		IPStack: IPStack{
 			Key:     config.IPSTACK_KEY,
 			BaseUrl: config.IPSTACK_BASE_URL,
+		},
+		Minio: Minio{
+			MinioEndpoint: config.MINIO_ENDPOINT,
+			BucketName:    config.BUCKET_NAME,
+			AccessKey:     config.BUCKET_ACCESS_KEY,
+			Secret:        config.BUCKET_SECRET_KEY,
 		},
 	}
 }
