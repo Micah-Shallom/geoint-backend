@@ -7,9 +7,9 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	"github.com/hngprojects/telex_be/internal/config"
-	"github.com/hngprojects/telex_be/pkg/repository/storage"
-	"github.com/hngprojects/telex_be/utility"
+	"github.com/Micah-Shallom/geoint-backend/internal/config"
+	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage"
+	"github.com/Micah-Shallom/geoint-backend/utility"
 )
 
 func UploadProfilePic(logger *utility.Logger, objectName string, file io.Reader, fileSize int64) (string, error) {

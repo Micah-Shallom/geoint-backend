@@ -33,35 +33,59 @@ func (base *Controller) SubmitAnalysis(c *gin.Context) {
 		Constraints:        c.PostForm("constraints"),
 	}
 
+	if req.OperationType == "" || req.AreaOfOperation == "" || req.MissionDescription == "" {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Required fields are missing (operation_type, area_of_operation, mission_description)", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
 	pastFiles := c.Request.MultipartForm.File["past_imagery"]
 	presentFiles := c.Request.MultipartForm.File["present_imagery"]
 	supportFiles := c.Request.MultipartForm.File["support_documents"]
 
-	if len(pastFiles) == 0 || len(presentFiles) == 0 {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Past imagery and present imagery are required", nil, nil)
+	if len(pastFiles) == 0 {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Past imagery is required", nil, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	if req.OperationType == "" || req.AreaOfOperation == "" || req.MissionDescription == "" {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Required fields are missing", nil, nil)
+	if len(presentFiles) == 0 {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Present imagery is required", nil, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
 	}
 
-	if err := base.Validator.Struct(&req); err != nil {
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Validation failed", utility.ValidationResponse(err, base.Validator), nil)
+	const maxImagerySize = 100 << 20 // 100MB
+	if pastFiles[0].Size > maxImagerySize {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Past imagery file size exceeds 100MB limit", nil, nil)
 		c.JSON(http.StatusBadRequest, rd)
 		return
+	}
+
+	if presentFiles[0].Size > maxImagerySize {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Present imagery file size exceeds 100MB limit", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
+	const maxDocSize = 20 << 20 // 20MB
+	for _, file := range supportFiles {
+		if file.Size > maxDocSize {
+			rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Support document exceeds 20MB limit: "+file.Filename, nil, nil)
+			c.JSON(http.StatusBadRequest, rd)
+			return
+		}
 	}
 
 	response, err := analysis.SubmitAnalysis(base.Db, base.Logger, req, pastFiles, presentFiles, supportFiles)
 	if err != nil {
-		rd := utility.BuildErrorResponse(http.StatusInternalServerError, "error", "Failed to submit analysis", err, nil)
+		base.Logger.Error("Failed to submit analysis", err)
+		rd := utility.BuildErrorResponse(http.StatusInternalServerError, "error", "Failed to submit analysis", err.Error(), nil)
 		c.JSON(http.StatusInternalServerError, rd)
 		return
 	}
 
+	base.Logger.Info("Analysis submitted successfully", response.AnalysisID)
 	rd := utility.BuildSuccessResponse(http.StatusOK, "Analysis submitted successfully", response)
 	c.JSON(http.StatusOK, rd)
 }

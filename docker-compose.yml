@@ -28,8 +28,8 @@ services:
     container_name: geoint_minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${BUCKET_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${BUCKET_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${BUCKET_ACCESS_KEY:-ge0Adm!n3}
+      MINIO_ROOT_PASSWORD: ${BUCKET_SECRET_KEY:-ge01ntp@ssWord}
     volumes:
       - minio_data:/data
     ports:

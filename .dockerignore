@@ -4,8 +4,10 @@ docker-compose.*.yml
 .git
 .gitignore
 
-.env
-*.env
+# .env
+# *.env
+# !app.env
+# !app.sample.env
 
 tmp/
 logs/

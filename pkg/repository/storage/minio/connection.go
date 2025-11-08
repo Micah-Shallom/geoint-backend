@@ -16,7 +16,7 @@ func ConnectToMinio(logger *utility.Logger, configBucket config.Minio) *minio.Cl
 	vsn := configBucket
 	minioClient, err := minio.New(vsn.MinioEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(vsn.AccessKey, vsn.Secret, ""),
-		Secure: true,
+		Secure: false,
 	})
 
 	if err != nil {

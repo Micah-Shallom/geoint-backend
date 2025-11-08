@@ -35,6 +35,7 @@ func Setup(logger *utility.Logger, validator *validator.Validate, db *storage.Da
 	// routers
 	ApiVersion := "api/v1"
 	Health(r, ApiVersion, validator, db, logger)
+	Analysis(r, ApiVersion, validator, db, logger)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
