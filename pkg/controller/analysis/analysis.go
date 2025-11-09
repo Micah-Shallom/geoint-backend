@@ -7,6 +7,7 @@ import (
 	"github.com/Micah-Shallom/geoint-backend/internal/models"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage"
 	"github.com/Micah-Shallom/geoint-backend/services/analysis"
+	"github.com/Micah-Shallom/geoint-backend/services/websocket"
 	"github.com/Micah-Shallom/geoint-backend/utility"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -17,6 +18,7 @@ type Controller struct {
 	Validator *validator.Validate
 	Logger    *utility.Logger
 	ExtReq    request.ExternalRequest
+	Hub       *websocket.Hub
 }
 
 func (base *Controller) SubmitAnalysis(c *gin.Context) {
@@ -77,7 +79,7 @@ func (base *Controller) SubmitAnalysis(c *gin.Context) {
 		}
 	}
 
-	response, err := analysis.SubmitAnalysis(base.Db, base.Logger, req, pastFiles, presentFiles, supportFiles)
+	response, err := analysis.SubmitAnalysis(base.Db, base.Logger, req, pastFiles, presentFiles, supportFiles, base.Hub)
 	if err != nil {
 		base.Logger.Error("Failed to submit analysis", err)
 		rd := utility.BuildErrorResponse(http.StatusInternalServerError, "error", "Failed to submit analysis", err.Error(), nil)

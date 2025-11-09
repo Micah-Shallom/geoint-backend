@@ -10,10 +10,11 @@ import (
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage/minio"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage/postgresql"
+	"github.com/Micah-Shallom/geoint-backend/services/websocket"
 	"github.com/Micah-Shallom/geoint-backend/utility"
 )
 
-func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.AnalysisRequest, pastFiles []*multipart.FileHeader, presentFiles []*multipart.FileHeader, supportFiles []*multipart.FileHeader) (models.AnalysisResponse, error) {
+func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.AnalysisRequest, pastFiles []*multipart.FileHeader, presentFiles []*multipart.FileHeader, supportFiles []*multipart.FileHeader, hub *websocket.Hub) (models.AnalysisResponse, error) {
 	var (
 		analysis       models.Analysis
 		supportDocURLs []string
