@@ -11,13 +11,16 @@ type ChangeArea struct {
 	Bbox []float64 `json:"bbox"`
 }
 
+type ChangeDetectionMetadata struct {
+	ChangeAreas            []ChangeArea `json:"change_areas"`
+	SignificantChanges     int          `json:"significant_changes"`
+	TotalChangesDetected   int          `json:"total_changes_detected"`
+	ChangeDetectionVersion string       `json:"change_detection_version"`
+}
+
 type GISChangeDetectionResponse struct {
-	ChangeMapURL string `json:"change_map"`
-	Metadata     struct {
-		TotalChangesDetected int          `json:"total_changes_detected"`
-		SignificantChanges   int          `json:"significant_changes"`
-		ChangeAreas          []ChangeArea `json:"change_areas"`
-	} `json:"metadata"`
+	ChangeMapURL string                  `json:"change_map"`
+	Metadata     ChangeDetectionMetadata `json:"metadata"`
 }
 
 // VLM Service Models

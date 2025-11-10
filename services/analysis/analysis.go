@@ -110,18 +110,14 @@ func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.Ana
 func ProcessAnalysisBackground(db *storage.Database, logger *utility.Logger, analysisID string) {
 	logger.Info("Starting background processing for analysis", analysisID)
 
-	// This is a placeholder for the actual processing pipeline
-	// In future implementations, this will:
-	// 1. Call GIS Service for change detection
-	// 2. Call VLM Service for imagery analysis
-	// 3. Call RAG Service for document retrieval
-	// 4. Call LLM Service for report generation
+	worker := NewAnalysisWorker(db, logger, nil)
+	worker.ProcessAnalysis(analysisID)
 
-	logger.Info("Background processing initiated", analysisID)
+	logger.Info("Background processing completed", analysisID)
 
 	// Update status to indicate processing has started
 	updateProgress := models.AnalysisProgress{
-		GISProcessing:    "in_progress",
+		GISProcessing:    "completed",
 		VLMAnalysis:      "pending",
 		RAGRetrieval:     "pending",
 		ReportGeneration: "pending",

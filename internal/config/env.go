@@ -12,6 +12,9 @@ type Configuration struct {
 	TestDatabase Database
 	App          App
 	IPStack      IPStack
+	GIS          GIS
+	LLM          LLM
+	VLM          VLM
 }
 
 type BaseConfig struct {
@@ -59,6 +62,10 @@ type BaseConfig struct {
 	BUCKET_NAME       string `mapstructure:"BUCKET_NAME"`
 	BUCKET_ACCESS_KEY string `mapstructure:"BUCKET_ACCESS_KEY"`
 	BUCKET_SECRET_KEY string `mapstructure:"BUCKET_SECRET_KEY"`
+
+	GIS string `mapstructure:"GIS_BASE_URL"`
+	LLM string `mapstructure:"LLM_BASE_URL"`
+	VLM string `mapstructure:"VLM_BASE_URL"`
 }
 
 func (config *BaseConfig) SetupConfigurationn() *Configuration {
@@ -118,6 +125,15 @@ func (config *BaseConfig) SetupConfigurationn() *Configuration {
 			BucketName:    config.BUCKET_NAME,
 			AccessKey:     config.BUCKET_ACCESS_KEY,
 			Secret:        config.BUCKET_SECRET_KEY,
+		},
+		GIS: GIS{
+			BaseURL: config.GIS,
+		},
+		LLM: LLM{
+			BaseURL: config.LLM,
+		},
+		VLM: VLM{
+			BaseURL: config.VLM,
 		},
 	}
 }
