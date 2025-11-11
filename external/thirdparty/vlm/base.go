@@ -1,4 +1,4 @@
-package gisservice
+package vlm
 
 import (
 	"github.com/Micah-Shallom/geoint-backend/external"

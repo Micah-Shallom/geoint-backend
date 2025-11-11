@@ -27,7 +27,7 @@ func (base *WSController) HandleWebSocket(c *gin.Context) {
 	}
 
 	if err := analysis.WsService(c, base.Db, base.Logger, base.Hub, analysisID); err != nil {
-		base.Logger.Info(fmt.Sprintf("error setting up websocket service for analysis: %d", analysisID), err)
+		base.Logger.Info(fmt.Sprintf("error setting up websocket service for analysis: %s", analysisID), err)
 		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error setting up websocket service", err, err.Error())
 		c.JSON(http.StatusBadRequest, rd)
 		return

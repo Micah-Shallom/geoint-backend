@@ -14,7 +14,7 @@ import (
 
 func Analysis(r *gin.Engine, ApiVersion string, validator *validator.Validate, db *storage.Database, logger *utility.Logger, hub *websocket.Hub) *gin.Engine {
 	extReq := request.ExternalRequest{Logger: logger, Test: false}
-	analysisCtrl := analysis.Controller{Db: db, Validator: validator, Logger: logger, ExtReq: extReq}
+	analysisCtrl := analysis.Controller{Db: db, Validator: validator, Logger: logger, ExtReq: extReq, Hub: hub}
 	wsCtrl := analysis.WSController{Hub: hub, Logger: logger, Db: db}
 
 	analysisUrl := r.Group(fmt.Sprintf("%v/analysis", ApiVersion))

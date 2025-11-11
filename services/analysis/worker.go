@@ -25,7 +25,7 @@ func NewAnalysisWorker(db *storage.Database, logger *utility.Logger, hub *websoc
 		DB:     db,
 		Logger: logger,
 		Hub:    hub,
-		ExtReq: request.ExternalRequest{Logger: logger},
+		ExtReq: request.ExternalRequest{Logger: logger, Test: true},
 	}
 }
 
@@ -34,31 +34,31 @@ func (w *AnalysisWorker) ProcessAnalysis(analysisID string) {
 		analysis  models.Analysis
 		startTime = time.Now()
 	)
-	w.Logger.Info("Starting analysis processing", analysisID)
+	w.Logger.Info("Starting analysis processing for %s", analysisID)
 
 	err, _ := postgresql.SelectOneFromDb(w.DB.Postgresql, &analysis, "id = ?", analysisID)
 	if err != nil {
-		w.Logger.Error("Failed to fetch analysis", err)
+		w.Logger.Error("Failed to fetch analysis: %v", err)
 		return
 	}
 
 	// GIS Processing
 	if err := w.processGIS(&analysis); err != nil {
-		w.Logger.Error("GIS processing failed", err)
+		w.Logger.Error("GIS processing failed: %v", err)
 		w.updateStatus(&analysis, "failed", "GIS processing failed")
 		return
 	}
 
 	// VLM Analysis
-	if err := w.processVLM(&analysis); err != nil {
-		w.Logger.Error("VLM analysis failed", err)
+	if err := w.processVLM(analysisID); err != nil {
+		w.Logger.Error("VLM analysis failed: %v", err)
 		w.updateStatus(&analysis, "failed", "VLM analysis failed")
 		return
 	}
 
 	// LLM Report Generation
-	if err := w.processLLM(&analysis); err != nil {
-		w.Logger.Error("Report generation failed", err)
+	if err := w.processLLM(analysis.ID); err != nil {
+		w.Logger.Error("Report generation failed: %v", err)
 		w.updateStatus(&analysis, "failed", "Report generation failed")
 		return
 	}
@@ -85,7 +85,7 @@ func (w *AnalysisWorker) ProcessAnalysis(analysisID string) {
 
 	res, err := postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, progressUpdate, "id = ?", analysisID)
 	if err != nil {
-		w.Logger.Error("Failed to update analysis progress", err)
+		w.Logger.Error("Failed to update analysis progress: %v", err)
 	}
 
 	if res.RowsAffected == 0 {
@@ -95,7 +95,7 @@ func (w *AnalysisWorker) ProcessAnalysis(analysisID string) {
 
 	// Send final WebSocket update
 	w.sendWebSocketUpdate(analysisID, "completed", progress, "Report ready")
-	w.Logger.Info("Analysis processing completed", analysisID, processingTime)
+	w.Logger.Info("Analysis processing completed for %s in %v", analysisID, processingTime)
 }
 
 func (w *AnalysisWorker) sendWebSocketUpdate(analysisID, status string, progress models.AnalysisProgress, currentStep string) {
@@ -107,6 +107,12 @@ func (w *AnalysisWorker) sendWebSocketUpdate(analysisID, status string, progress
 		UpdatedAt:   time.Now().Format(time.RFC3339),
 	}
 
+	if w.Hub == nil || w.Hub.Broadcast == nil {
+		w.Logger.Error("Hub or Hub.Broadcast is nil, skipping WebSocket update")
+		return
+	}
+
+	w.Logger.Info("Sending WebSocket update for analysis %s: %s - %s", analysisID, status, currentStep)
 	w.Hub.Broadcast <- message
 }
 
@@ -115,5 +121,5 @@ func (w *AnalysisWorker) updateStatus(analysis *models.Analysis, status string, 
 		Where("id = ?", analysis.ID).
 		Update("status", status)
 
-	w.Logger.Info("Analysis status updated", analysis.ID, status, message)
+	w.Logger.Info("Analysis status updated for %s to %s: %s", analysis.ID, status, message)
 }

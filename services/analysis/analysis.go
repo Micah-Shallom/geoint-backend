@@ -40,23 +40,23 @@ func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.Ana
 	if err != nil {
 		return models.AnalysisResponse{}, fmt.Errorf("failed to upload past imagery: %v", err)
 	}
-	logger.Info("Past imagery uploaded", pastImageryURL)
+	logger.Info("Past imagery uploaded to %s", pastImageryURL)
 
 	presentImageryURL, err := minio.UploadImagery(logger, analysisID, "present", presentFiles[0])
 	if err != nil {
 		return models.AnalysisResponse{}, fmt.Errorf("failed to upload present imagery: %v", err)
 	}
-	logger.Info("Present imagery uploaded", presentImageryURL)
+	logger.Info("Present imagery uploaded to %s", presentImageryURL)
 
 	for _, file := range supportFiles {
 		docURL, err := minio.UploadSupportDocument(logger, analysisID, file)
 		if err != nil {
-			logger.Warning("Failed to upload support document", file.Filename, err)
+			logger.Warning("Failed to upload support document %s: %v", file.Filename, err)
 			continue
 		}
 		supportDocURLs = append(supportDocURLs, docURL)
 	}
-	logger.Info("Support documents uploaded", len(supportDocURLs))
+	logger.Info("Support documents uploaded: %d", len(supportDocURLs))
 
 	supportDocsJSON, err := json.Marshal(supportDocURLs)
 	if err != nil {
@@ -90,12 +90,12 @@ func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.Ana
 	}
 
 	if err := postgresql.CreateOneRecord(db.Postgresql, &analysis); err != nil {
-		logger.Error("Failed to create analysis record", err)
+		logger.Error("Failed to create analysis record: %v", err)
 		return models.AnalysisResponse{}, fmt.Errorf("failed to create analysis record: %v", err)
 	}
-	logger.Info("Analysis record created successfully", analysisID)
+	logger.Info("Analysis record created successfully with ID %s", analysisID)
 
-	go ProcessAnalysisBackground(db, logger, analysisID)
+	go ProcessAnalysisBackground(db, logger, analysisID, hub)
 
 	response := models.AnalysisResponse{
 		AnalysisID:    analysisID,
@@ -107,13 +107,13 @@ func SubmitAnalysis(db *storage.Database, logger *utility.Logger, req models.Ana
 	return response, nil
 }
 
-func ProcessAnalysisBackground(db *storage.Database, logger *utility.Logger, analysisID string) {
-	logger.Info("Starting background processing for analysis", analysisID)
+func ProcessAnalysisBackground(db *storage.Database, logger *utility.Logger, analysisID string, hub *websocket.Hub) {
+	logger.Info("Starting background processing for analysis %s", analysisID)
 
-	worker := NewAnalysisWorker(db, logger, nil)
+	worker := NewAnalysisWorker(db, logger, hub)
 	worker.ProcessAnalysis(analysisID)
 
-	logger.Info("Background processing completed", analysisID)
+	logger.Info("Background processing completed for analysis %s", analysisID)
 
 	// Update status to indicate processing has started
 	updateProgress := models.AnalysisProgress{
@@ -129,5 +129,5 @@ func ProcessAnalysisBackground(db *storage.Database, logger *utility.Logger, ana
 		Where("id = ?", analysisID).
 		Update("progress", progressJSON)
 
-	logger.Info("Progress updated for analysis", analysisID)
+	logger.Info("Progress updated for analysis %s", analysisID)
 }

@@ -1,4 +1,4 @@
-package gisservice
+package llm
 
 import (
 	"fmt"
@@ -6,15 +6,15 @@ import (
 	"github.com/Micah-Shallom/geoint-backend/external/external_models"
 )
 
-func (r *RequestObj) GISRequest() (external_models.GISChangeDetectionResponse, error) {
+func (r *RequestObj) LLMCall() (external_models.LLMReportResponse, error) {
 	var (
-		outBoundResponse external_models.GISChangeDetectionResponse
+		outBoundResponse external_models.LLMReportResponse
 		logger           = r.Logger
 		idata            = r.RequestData
 		path             = ""
 	)
 
-	data, ok := idata.(external_models.GISChangeDetectionRequest)
+	data, ok := idata.(external_models.LLMReportRequest)
 	if !ok {
 		logger.Error("gis ", idata, "request data format error")
 		return outBoundResponse, fmt.Errorf("request data format error")

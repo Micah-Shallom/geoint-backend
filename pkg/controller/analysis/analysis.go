@@ -81,13 +81,13 @@ func (base *Controller) SubmitAnalysis(c *gin.Context) {
 
 	response, err := analysis.SubmitAnalysis(base.Db, base.Logger, req, pastFiles, presentFiles, supportFiles, base.Hub)
 	if err != nil {
-		base.Logger.Error("Failed to submit analysis", err)
+		base.Logger.Error("Failed to submit analysis: %v", err)
 		rd := utility.BuildErrorResponse(http.StatusInternalServerError, "error", "Failed to submit analysis", err.Error(), nil)
 		c.JSON(http.StatusInternalServerError, rd)
 		return
 	}
 
-	base.Logger.Info("Analysis submitted successfully", response.AnalysisID)
+	base.Logger.Info("Analysis submitted successfully with ID %s", response.AnalysisID)
 	rd := utility.BuildSuccessResponse(http.StatusOK, "Analysis submitted successfully", response)
 	c.JSON(http.StatusOK, rd)
 }

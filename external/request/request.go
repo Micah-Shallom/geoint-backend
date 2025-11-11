@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/Micah-Shallom/geoint-backend/external/mocks"
-	gisservice "github.com/Micah-Shallom/geoint-backend/external/thirdparty/gis_service"
+	"github.com/Micah-Shallom/geoint-backend/external/thirdparty/gis"
 	"github.com/Micah-Shallom/geoint-backend/external/thirdparty/ipstack"
+	"github.com/Micah-Shallom/geoint-backend/external/thirdparty/llm"
+	"github.com/Micah-Shallom/geoint-backend/external/thirdparty/vlm"
 	"github.com/Micah-Shallom/geoint-backend/internal/config"
 	"github.com/Micah-Shallom/geoint-backend/utility"
 )
@@ -20,6 +22,8 @@ var (
 	JsonDecodeMethod string = "json"
 	IpinfoResolveIp  string = "ipinfo_resolve_ip"
 	ProcessGIS       string = "process_gis"
+	ProcessVLM       string = "process_vlm"
+	ProcessLLM       string = "process_llm"
 )
 
 func (er ExternalRequest) SendExternalRequest(name string, data any) (any, error) {
@@ -40,7 +44,7 @@ func (er ExternalRequest) SendExternalRequest(name string, data any) (any, error
 			}
 			return obj.IpinfoResolveIp()
 		case ProcessGIS:
-			obj := gisservice.RequestObj{
+			obj := gis.RequestObj{
 				Name:         name,
 				Path:         fmt.Sprintf("%v", config.GIS.BaseURL),
 				Method:       http.MethodPost,
@@ -49,7 +53,29 @@ func (er ExternalRequest) SendExternalRequest(name string, data any) (any, error
 				RequestData:  data,
 				Logger:       er.Logger,
 			}
-			return obj.GISRequest()
+			return obj.GISCall()
+		case ProcessVLM:
+			obj := vlm.RequestObj{
+				Name:         name,
+				Path:         fmt.Sprintf("%v", config.VLM.BaseURL),
+				Method:       http.MethodPost,
+				SuccessCode:  200,
+				DecodeMethod: JsonDecodeMethod,
+				RequestData:  data,
+				Logger:       er.Logger,
+			}
+			return obj.VLMCall()
+		case ProcessLLM:
+			obj := llm.RequestObj{
+				Name:         name,
+				Path:         fmt.Sprintf("%v", config.LLM.BaseURL),
+				Method:       http.MethodPost,
+				SuccessCode:  200,
+				DecodeMethod: JsonDecodeMethod,
+				RequestData:  data,
+				Logger:       er.Logger,
+			}
+			return obj.LLMCall()
 		default:
 			return nil, fmt.Errorf("request not found")
 		}
