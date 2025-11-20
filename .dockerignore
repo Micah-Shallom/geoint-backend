@@ -1,0 +1,20 @@
+docker-compose.yml
+docker-compose.*.yml
+
+.git
+.gitignore
+
+# .env
+# *.env
+# !app.env
+# !app.sample.env
+
+tmp/
+logs/
+dist/
+
+.DS_Store
+.vscode
+.idea
+
+vendor/

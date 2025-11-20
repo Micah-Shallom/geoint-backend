@@ -12,10 +12,11 @@ import (
 	"github.com/Micah-Shallom/geoint-backend/internal/config"
 	"github.com/Micah-Shallom/geoint-backend/pkg/middleware"
 	"github.com/Micah-Shallom/geoint-backend/pkg/repository/storage"
+	"github.com/Micah-Shallom/geoint-backend/services/websocket"
 	"github.com/Micah-Shallom/geoint-backend/utility"
 )
 
-func Setup(logger *utility.Logger, validator *validator.Validate, db *storage.Database, appConfiguration *config.App) *gin.Engine {
+func Setup(logger *utility.Logger, validator *validator.Validate, db *storage.Database, appConfiguration *config.App, hub *websocket.Hub) *gin.Engine {
 	if appConfiguration.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -35,6 +36,7 @@ func Setup(logger *utility.Logger, validator *validator.Validate, db *storage.Da
 	// routers
 	ApiVersion := "api/v1"
 	Health(r, ApiVersion, validator, db, logger)
+	Analysis(r, ApiVersion, validator, db, logger, hub)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

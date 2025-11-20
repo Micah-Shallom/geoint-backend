@@ -3,7 +3,10 @@ package mocks
 import (
 	"fmt"
 
+	gisservicemocks "github.com/Micah-Shallom/geoint-backend/external/mocks/gisservice_mocks"
 	"github.com/Micah-Shallom/geoint-backend/external/mocks/ipstack_mocks"
+	llmlservicemocks "github.com/Micah-Shallom/geoint-backend/external/mocks/llmlservice_mocks"
+	vlmservicemocks "github.com/Micah-Shallom/geoint-backend/external/mocks/vlmservice_mocks"
 	"github.com/Micah-Shallom/geoint-backend/utility"
 )
 
@@ -33,6 +36,12 @@ func (er ExternalRequest) SendExternalRequest(name string, data any) (any, error
 	switch name {
 	case "ipinfo_resolve_ip":
 		return ipstack_mocks.IpinfoResolveIp(er.Logger, data)
+	case "process_gis":
+		return gisservicemocks.MockGISChangeDetection(er.Logger, data)
+	case "process_vlm":
+		return vlmservicemocks.MockVLMAnalysis(er.Logger, data)
+	case "process_llm":
+		return llmlservicemocks.MockLLMReportGeneration(er.Logger, data)
 	default:
 		return nil, fmt.Errorf("request not found")
 	}

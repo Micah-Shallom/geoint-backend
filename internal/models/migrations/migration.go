@@ -1,9 +1,11 @@
 package migrations
 
+import "github.com/Micah-Shallom/geoint-backend/internal/models"
+
 // _ = db.AutoMigrate(MigrationModels()...)
 func AuthMigrationModels() []any {
 	return []any{
-		// models.IntegrationBills{},
+		models.Analysis{},
 	} // an array of db models, example: User{}
 }
 

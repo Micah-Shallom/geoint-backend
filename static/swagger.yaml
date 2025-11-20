@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: GeoInt Analysis API
+  description: API to submit imagery analysis requests with past/present images and support documents.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8019/api/v1
+    description: Local development server
+
+paths:
+  /analysis/submit:
+    post:
+      summary: Submit a new analysis request
+      description: Submit past and present imagery along with support documents for analysis.
+      operationId: submitAnalysisRequest
+      tags:
+        - Analysis
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                operation_type:
+                  type: string
+                  description: Type of operation
+                  example: imagery_analysis
+                area_of_operation:
+                  type: string
+                  description: Area being analyzed
+                  example: Borno North
+                mission_description:
+                  type: string
+                  description: Description of the mission
+                  example: Analyze past and present imagery to detect abandoned settlements.
+                constraints:
+                  type: string
+                  description: Constraints or limitations for the operation
+                  example: Low visibility, cloud cover
+                past_imagery:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Upload past imagery files
+                present_imagery:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Upload present imagery files
+                support_documents:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Upload supporting PDF or Word documents
+              required:
+                - operation_type
+                - area_of_operation
+                - mission_description
+                - constraints
+                - past_imagery
+                - present_imagery
+                - support_documents
+      responses:
+        '200':
+          description: Request submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Analysis request submitted
+                  request_id:
+                    type: string
+                    example: 123e4567-e89b-12d3-a456-426614174000
+        '400':
+          description: Bad request - missing fields or invalid files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Validation failed

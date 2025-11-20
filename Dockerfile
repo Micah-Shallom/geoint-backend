@@ -11,6 +11,7 @@ RUN go build -v -o /dist/geoint_be
 
 # Deployment stage
 FROM alpine:3.22
+RUN apk add --no-cache tzdata
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app ./
 COPY --from=build /dist/geoint_be /usr/local/bin/geoint_be
