@@ -49,15 +49,31 @@ func (w *AnalysisWorker) ProcessAnalysis(analysisID string) {
 		return
 	}
 
+	// Reload analysis after GIS to get updated state
+	err, _ = postgresql.SelectOneFromDb(w.DB.Postgresql, &analysis, "id = ?", analysisID)
+	if err != nil {
+		w.Logger.Error("Failed to reload analysis after GIS: %v", err)
+		w.updateStatus(&analysis, "failed", "Failed to reload analysis state")
+		return
+	}
+
 	// VLM Analysis
-	if err := w.processVLM(analysisID); err != nil {
+	if err := w.processVLM(&analysis); err != nil {
 		w.Logger.Error("VLM analysis failed: %v", err)
 		w.updateStatus(&analysis, "failed", "VLM analysis failed")
 		return
 	}
 
+	// Reload analysis after VLM to get updated state
+	err, _ = postgresql.SelectOneFromDb(w.DB.Postgresql, &analysis, "id = ?", analysisID)
+	if err != nil {
+		w.Logger.Error("Failed to reload analysis after VLM: %v", err)
+		w.updateStatus(&analysis, "failed", "Failed to reload analysis state")
+		return
+	}
+
 	// LLM Report Generation
-	if err := w.processLLM(analysis.ID); err != nil {
+	if err := w.processLLM(&analysis); err != nil {
 		w.Logger.Error("Report generation failed: %v", err)
 		w.updateStatus(&analysis, "failed", "Report generation failed")
 		return
@@ -86,10 +102,11 @@ func (w *AnalysisWorker) ProcessAnalysis(analysisID string) {
 	res, err := postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, progressUpdate, "id = ?", analysisID)
 	if err != nil {
 		w.Logger.Error("Failed to update analysis progress: %v", err)
+		return
 	}
 
 	if res.RowsAffected == 0 {
-		w.Logger.Error("fields not updated")
+		w.Logger.Error("fields not updated for final status")
 		return
 	}
 

@@ -114,20 +114,4 @@ func ProcessAnalysisBackground(db *storage.Database, logger *utility.Logger, ana
 	worker.ProcessAnalysis(analysisID)
 
 	logger.Info("Background processing completed for analysis %s", analysisID)
-
-	// Update status to indicate processing has started
-	updateProgress := models.AnalysisProgress{
-		GISProcessing:    "completed",
-		VLMAnalysis:      "pending",
-		RAGRetrieval:     "pending",
-		ReportGeneration: "pending",
-	}
-
-	progressJSON, _ := json.Marshal(updateProgress)
-
-	db.Postgresql.Model(&models.Analysis{}).
-		Where("id = ?", analysisID).
-		Update("progress", progressJSON)
-
-	logger.Info("Progress updated for analysis %s", analysisID)
 }

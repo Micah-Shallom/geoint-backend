@@ -45,12 +45,18 @@ func (w *AnalysisWorker) processGIS(analysis *models.Analysis) error {
 	}
 
 	resp, err := w.ExtReq.SendExternalRequest(request.ProcessGIS, gisReq)
-	gisResp, ok := resp.(external_models.GISChangeDetectionResponse)
-	if !ok {
+	if err != nil {
 		w.Logger.Error("Failed to process GIS for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("GIS service error: %v", err)
 	}
+	
+	gisResp, ok := resp.(external_models.GISChangeDetectionResponse)
+	if !ok {
+		w.Logger.Error("Failed to cast GIS response for analysis %s", analysis.ID)
+		return fmt.Errorf("GIS service error: invalid response type")
+	}
 
+	// Update change map path
 	res, err = postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, map[string]any{
 		"change_map_path": gisResp.ChangeMapURL,
 	}, "id = ?", analysis.ID)
@@ -63,8 +69,10 @@ func (w *AnalysisWorker) processGIS(analysis *models.Analysis) error {
 		return fmt.Errorf("failed to update change map path: no rows affected")
 	}
 
+	// Update local analysis object
 	analysis.ChangeMapPath = gisResp.ChangeMapURL
 
+	// Mark GIS as completed
 	progress.GISProcessing = "completed"
 	progressJSON, err = json.Marshal(progress)
 	if err != nil {
@@ -90,8 +98,8 @@ func (w *AnalysisWorker) processGIS(analysis *models.Analysis) error {
 	return nil
 }
 
-func (w *AnalysisWorker) processVLM(analysisID string) error {
-	w.Logger.Info("Starting VLM analysis for analysis %s", analysisID)
+func (w *AnalysisWorker) processVLM(analysis *models.Analysis) error {
+	w.Logger.Info("Starting VLM analysis for analysis %s", analysis.ID)
 
 	progress := models.AnalysisProgress{
 		GISProcessing:    "completed",
@@ -101,30 +109,23 @@ func (w *AnalysisWorker) processVLM(analysisID string) error {
 	}
 	progressJSON, err := json.Marshal(progress)
 	if err != nil {
-		w.Logger.Error("failed to marshal VLM progressJSON for analysis: %s", analysisID)
-		return fmt.Errorf("failed to marshal VLM progressJSON for analysis: %s", analysisID)
+		w.Logger.Error("failed to marshal VLM progressJSON for analysis: %s", analysis.ID)
+		return fmt.Errorf("failed to marshal VLM progressJSON for analysis: %s", analysis.ID)
 	}
 
 	res, err := postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, map[string]any{
 		"progress": progressJSON,
-	}, "id = ?", analysisID)
+	}, "id = ?", analysis.ID)
 	if err != nil {
-		w.Logger.Error("failed to update progress for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to update progress for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to update progress: %v", err)
 	}
 	if res.RowsAffected == 0 {
-		w.Logger.Error("failed to update progress for analysis %s: %s", analysisID, "no rows affected")
+		w.Logger.Error("failed to update progress for analysis %s: %s", analysis.ID, "no rows affected")
 		return fmt.Errorf("failed to update progress: no rows affected")
 	}
 
-	w.sendWebSocketUpdate(analysisID, "processing", progress, "Analyzing imagery with VLM...")
-
-	var analysis models.Analysis
-	err, _ = postgresql.SelectOneFromDb(w.DB.Postgresql, &analysis, "id = ?", analysisID)
-	if err != nil {
-		w.Logger.Error("failed to fetch analysis %s: %v", analysisID, err)
-		return fmt.Errorf("failed to fetch analysis: %v", err)
-	}
+	w.sendWebSocketUpdate(analysis.ID, "processing", progress, "Analyzing imagery with VLM...")
 
 	vlmReq := external_models.VLMAnalysisRequest{
 		PastImageURL:    analysis.PastImageryPath,
@@ -151,6 +152,7 @@ func (w *AnalysisWorker) processVLM(analysisID string) error {
 		return fmt.Errorf("failed to marshal vlmJSON: %v", err)
 	}
 
+	// Mark VLM as completed
 	progress.VLMAnalysis = "completed"
 	progressJSON, err = json.Marshal(progress)
 	if err != nil {
@@ -171,14 +173,17 @@ func (w *AnalysisWorker) processVLM(analysisID string) error {
 		return fmt.Errorf("failed to update VLM analysis and progress: no rows affected")
 	}
 
+	// Update local analysis object
+	analysis.VLMAnalysis = vlmJSON
+
 	w.sendWebSocketUpdate(analysis.ID, "processing", progress, "VLM analysis completed")
 	w.Logger.Info("VLM analysis completed for analysis %s", analysis.ID)
 
 	return nil
 }
 
-func (w *AnalysisWorker) processLLM(analysisID string) error {
-	w.Logger.Info("Starting report generation for analysis %s", analysisID)
+func (w *AnalysisWorker) processLLM(analysis *models.Analysis) error {
+	w.Logger.Info("Starting report generation for analysis %s", analysis.ID)
 
 	progress := models.AnalysisProgress{
 		GISProcessing:    "completed",
@@ -188,34 +193,27 @@ func (w *AnalysisWorker) processLLM(analysisID string) error {
 	}
 	progressJSON, err := json.Marshal(progress)
 	if err != nil {
-		w.Logger.Error("failed to marshal progress for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to marshal progress for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to marshal progress: %v", err)
 	}
 
 	res, err := postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, map[string]any{
 		"progress": progressJSON,
-	}, "id = ?", analysisID)
+	}, "id = ?", analysis.ID)
 	if err != nil {
-		w.Logger.Error("failed to update progress for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to update progress for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to update progress: %v", err)
 	}
 	if res.RowsAffected == 0 {
-		w.Logger.Error("failed to update progress for analysis %s: no rows affected", analysisID)
+		w.Logger.Error("failed to update progress for analysis %s: no rows affected", analysis.ID)
 		return fmt.Errorf("failed to update progress: no rows affected")
 	}
 
-	w.sendWebSocketUpdate(analysisID, "processing", progress, "Generating IPB report...")
-
-	var analysis models.Analysis
-	err, _ = postgresql.SelectOneFromDb(w.DB.Postgresql, &analysis, "id = ?", analysisID)
-	if err != nil {
-		w.Logger.Error("Failed to re-fetch analysis for LLM processing %s: %v", analysisID, err)
-		return fmt.Errorf("failed to re-fetch analysis: %v", err)
-	}
+	w.sendWebSocketUpdate(analysis.ID, "processing", progress, "Generating IPB report...")
 
 	var vlmResp external_models.VLMAnalysisResponse
 	if err := json.Unmarshal(analysis.VLMAnalysis, &vlmResp); err != nil {
-		w.Logger.Error("failed to unmarshal VLM analysis for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to unmarshal VLM analysis for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to unmarshal VLM analysis: %v", err)
 	}
 
@@ -248,44 +246,45 @@ func (w *AnalysisWorker) processLLM(analysisID string) error {
 
 	llmResp, err := w.ExtReq.SendExternalRequest(request.ProcessLLM, llmReq)
 	if err != nil {
-		w.Logger.Error("LLM service error for analysis %s: %v", analysisID, err)
+		w.Logger.Error("LLM service error for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("LLM service error: %v", err)
 	}
 
 	typedLLMResp, ok := llmResp.(external_models.LLMReportResponse)
 	if !ok {
-		w.Logger.Error("LLM service error: unexpected response type for analysis %s", analysisID)
+		w.Logger.Error("LLM service error: unexpected response type for analysis %s", analysis.ID)
 		return fmt.Errorf("LLM service error: unexpected response type")
 	}
 
 	reportJSON, err := json.Marshal(typedLLMResp.Report)
 	if err != nil {
-		w.Logger.Error("failed to marshal LLM report for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to marshal LLM report for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to marshal LLM report: %v", err)
 	}
 
+	// Mark report generation as completed
 	progress.ReportGeneration = "completed"
 	progressJSON, err = json.Marshal(progress)
 	if err != nil {
-		w.Logger.Error("failed to marshal final progress for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to marshal final progress for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to marshal final progress: %v", err)
 	}
 
 	res, err = postgresql.UpdateFields(w.DB.Postgresql, &models.Analysis{}, map[string]any{
 		"report_json": reportJSON,
 		"progress":    progressJSON,
-	}, "id = ?", analysisID)
+	}, "id = ?", analysis.ID)
 	if err != nil {
-		w.Logger.Error("failed to update report and progress for analysis %s: %v", analysisID, err)
+		w.Logger.Error("failed to update report and progress for analysis %s: %v", analysis.ID, err)
 		return fmt.Errorf("failed to update report and progress: %v", err)
 	}
 	if res.RowsAffected == 0 {
-		w.Logger.Error("failed to update report and progress for analysis %s: no rows affected", analysisID)
+		w.Logger.Error("failed to update report and progress for analysis %s: no rows affected", analysis.ID)
 		return fmt.Errorf("failed to update report and progress: no rows affected")
 	}
 
-	w.sendWebSocketUpdate(analysisID, "processing", progress, "Report generation completed")
-	w.Logger.Info("Report generation completed for analysis %s", analysisID)
+	w.sendWebSocketUpdate(analysis.ID, "processing", progress, "Report generation completed")
+	w.Logger.Info("Report generation completed for analysis %s", analysis.ID)
 
 	return nil
 }
